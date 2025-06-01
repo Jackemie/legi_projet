@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Moteur de lois françaises</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const searchInput = document.getElementById('searchInput');
+  const searchBtn = document.getElementById('searchBtn');
+  const suggestionsDiv = document.getElementById('suggestions');
+  const randomArticlesDiv = document.getElementById('randomArticles');
+
+  // 🔍 Redirection vers results.html avec la query
+  if (searchBtn && searchInput) {
+    searchBtn.addEventListener('click', () => {
+      const query = searchInput.value.trim();
+      if (query) {
+        window.location.href = `results.html?query=${encodeURIComponent(query)}`;
+      }
+    });
+  }
+
+  // 💡 Suggestions dynamiques depuis dico.txt
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.toLowerCase();
+      if (query.length >= 4) {
+        suggestWords(query);
+      } else {
+        suggestionsDiv.style.display = 'none';
+      }
+    });
+  }
+
+  // 📥 Chargement des lois
+  fetch('data/lois.json')
+    .then(response => {
+      if (!response.ok) throw new Error('Erreur réseau');
+      return response.json();
+    })
+    .then(lois => {
+      displayRandomLaws(lois);
+    })
+    .catch(err => console.error('Erreur lors du chargement des lois :', err));
+
+  // 🎲 Afficher 5 lois aléatoires
+  function displayRandomLaws(lois) {
+    const shuffled = [...lois].sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, 5);
+    randomArticlesDiv.innerHTML = '';
+    selected.forEach(law => {
+      const bubble = document.createElement('div');
+      bubble.className = 'article-bubble';
+      bubble.innerHTML = `<h3>${law.titre}</h3><p>${law.texte}</p>`;
+      bubble.addEventListener('click', () => showLawDetails(law));
+      randomArticlesDiv.appendChild(bubble);
+    });
+  }
+
+  // 📚 Suggestion de mots depuis dico.txt
+  function suggestWords(query) {
+    fetch('data/dico.txt')
+      .then(res => res.text())
+      .then(text => {
+        const words = text.split('\n').filter(w => w.trim());
+        const unique = [...new Set(words)];
+        const suggestions = unique.filter(w => w.toLowerCase().includes(query));
+        suggestionsDiv.innerHTML = '';
+        suggestions.forEach(word => {
+          const div = document.createElement('div');
+          div.textContent = word;
+          div.addEventListener('click', () => {
+            searchInput.value = word;
+            suggestionsDiv.style.display = 'none';
+          });
+          suggestionsDiv.appendChild(div);
+        });
+        suggestionsDiv.style.display = 'block';
+      });
+  }
+
+  // 🪟 Popup pour les bulles aléatoires
+  function showLawDetails(law) {
+    const popup = document.createElement('div');
+    popup.className = 'popup-overlay';
+    popup.innerHTML = `
+      <div class="popup-content">
+        <span class="close" onclick="this.closest('.popup-overlay').remove()">&times;</span>
+        <h2>${law.titre}</h2>
+        <p>${law.texte}</p>
+        <p><strong>Code:</strong> ${law.code}</p>
+        <p><strong>Article:</strong> ${law.article}</p>
+        <p><strong>Peine:</strong> ${law.peine}</p>
+        <p><strong>Solution:</strong> ${law.action}</p>
+      </div>
+    `;
+    document.body.appendChild(popup);
+  }
+});
+</script>
+
+
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-container">
+      <h1><a href="#">Service de Recherche Juridique</a></h1>
+    </div>
+  </header>
+
+  <!-- CONTENU PRINCIPAL -->
+  <main class="container">
+
+    <!-- SECTION DE RECHERCHE -->
+    <section class="search-section">
+      <input type="text" id="searchInput" placeholder="Tape un mot-clé (ex: discrimination)" autocomplete="off" />
+      <button id="searchBtn">Rechercher</button>
+      <div id="suggestions" class="suggestions-box"></div>
+    </section>
+
+    <!-- SECTION DE RÉSULTATS -->
+    <section id="results" class="results-section">
+      <!-- Résultats affichés ici par JS -->
+    </section>
+
+    <!-- SECTION À LIRE AUSSI -->
+    <section class="random-articles">
+      <h2>À lire aussi</h2>
+      <div id="randomArticles" class="article-bubbles">
+        <!-- JS injectera 5 bulles ici -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-container">
+      <p>Projet personnel – Données issues de Légifrance</p>
+      <p><a href="https://www.legifrance.gouv.fr" target="_blank">Voir les textes originaux</a></p>
+    </div>
+  </footer>
+</body>
+</html>

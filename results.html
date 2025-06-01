@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Résultats de la Recherche</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const resultsDiv = document.getElementById('results');
+  const modal = document.getElementById('customModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalBody = document.getElementById('modalBody');
+  const closeModalBtn = modal.querySelector('.close-modal-btn');
+  const query = new URLSearchParams(window.location.search).get('query');
+
+  if (!query) {
+    resultsDiv.innerHTML = '<p>Aucun mot-clé fourni.</p>';
+    return;
+  }
+
+  // Chargement et recherche des lois
+  fetch('data/lois.json')
+    .then(response => response.json())
+    .then(lois => {
+      const results = lois.filter(law =>
+        law.titre.toLowerCase().includes(query.toLowerCase()) ||
+        law.texte.toLowerCase().includes(query.toLowerCase()) ||
+        law.code.toLowerCase().includes(query.toLowerCase()) ||
+        law.article.toLowerCase().includes(query.toLowerCase()) ||
+        law.peine.toLowerCase().includes(query.toLowerCase()) ||
+        law.action.toLowerCase().includes(query.toLowerCase())
+      );
+
+      if (results.length === 0) {
+        resultsDiv.innerHTML = '<p>Aucun résultat trouvé.</p>';
+      } else {
+        resultsDiv.innerHTML = '';
+        results.forEach(law => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <h2>${law.titre}</h2>
+            <p>${law.texte}</p>
+            <button class="open-modal-btn">Voir plus</button>
+            <div class="glow"></div>
+          `;
+
+          const btn = card.querySelector('.open-modal-btn');
+          btn.addEventListener('click', () => {
+            modalTitle.textContent = law.titre;
+            modalBody.innerHTML = `
+              <p>${law.texte}</p>
+              <p><strong>Code :</strong> ${law.code}</p>
+              <p><strong>Article :</strong> ${law.article}</p>
+              <p><strong>Peine :</strong> ${law.peine}</p>
+              <p><strong>Solution :</strong> ${law.action}</p>
+              <a href=${law.source}><strong>Sources</strong></a>
+            `;
+            modal.classList.add('open');
+          });
+
+          addCardEffects(card);
+          resultsDiv.appendChild(card);
+        });
+      }
+    })
+    .catch(error => {
+      resultsDiv.innerHTML = '<p>Erreur lors du chargement des données.</p>';
+      console.error(error);
+    });
+
+  // Fermeture du modal
+  closeModalBtn.addEventListener('click', () => {
+    modal.classList.remove('open');
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.classList.remove('open');
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      modal.classList.remove('open');
+    }
+  });
+
+  // Effet glow et rotation sur les cartes
+  function addCardEffects(card) {
+    const glow = card.querySelector('.glow');
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      card.style.setProperty('--x', `${x}px`);
+      card.style.setProperty('--y', `${y}px`);
+      const rotateX = ((y - rect.height / 2) / (rect.height / 2)) * 10;
+      const rotateY = ((x - rect.width / 2) / (rect.width / 2)) * -10;
+      card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+      const angle = 135 + rotateX - rotateY;
+      card.style.setProperty('--angle', `${angle}deg`);
+    });
+
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'rotateX(0deg) rotateY(0deg)';
+      card.style.setProperty('--angle', '135deg');
+    });
+  }
+});
+</script>
+
+
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-container">
+      <h1><a href="index.html">Service de Recherche Juridique</a></h1>
+    </div>
+  </header>
+
+  <!-- CONTENU PRINCIPAL -->
+  <main class="container">
+
+    <!-- SECTION DE RÉSULTATS -->
+    <section id="results" class="results-section card-grid">
+      <!-- Résultats affichés ici par JS -->
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-container">
+      <p>Projet personnel – Données issues de Légifrance</p>
+      <p><a href="https://www.legifrance.gouv.fr" target="_blank">Voir les textes originaux</a></p>
+    </div>
+  </footer>
+
+<!-- Modal générique injecté dynamiquement -->
+<div class="modal-overlay" id="customModal">
+  <div class="modal-content">
+    <h2 id="modalTitle">Titre</h2>
+    <div id="modalBody">Contenu</div>
+    <button class="close-modal-btn">Fermer</button>
+  </div>
+</div>
+
+</body>
+</html>
